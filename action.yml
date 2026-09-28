@@ -1,0 +1,33 @@
+name: "GraphIngest"
+description: "Start a job on graphingest.io. The mark on the save turns green or red when the job finishes."
+branding:
+  icon: play
+  color: blue
+inputs:
+  api-key:
+    description: "API key from graphingest.io Settings"
+    required: true
+  flow-id:
+    description: "Flow id from graphingest.io"
+    required: true
+  api-url:
+    description: "GraphIngest site"
+    required: false
+    default: "https://www.graphingest.io"
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      env:
+        GRAPHINGEST_API_KEY: ${{ inputs.api-key }}
+        GRAPHINGEST_FLOW_ID: ${{ inputs.flow-id }}
+        GRAPHINGEST_API_URL: ${{ inputs.api-url }}
+        REPOSITORY: ${{ github.repository }}
+        SHA: ${{ github.sha }}
+      run: |
+        set -euo pipefail
+        body=$(jq -n --arg repo "$REPOSITORY" --arg sha "$SHA" '{parameters:{}, github:{repository:$repo, sha:$sha}}')
+        curl -fsS -X POST "$GRAPHINGEST_API_URL/api/flows/$GRAPHINGEST_FLOW_ID/runs" \
+          -H "Authorization: Bearer $GRAPHINGEST_API_KEY" \
+          -H "Content-Type: application/json" \
+          --data "$body"
